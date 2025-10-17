@@ -1,10 +1,11 @@
 import SwiftUI
 
+// MARK: - ContentView
 struct ContentView: View {
     @State private var isDarkMode: Bool = true
     @State private var nameTextField: String = ""
     @State private var surenameTextField: String = ""
-    
+
     private let darkTheme = ThemeColor(
         gradientBg: [
             Color.black,
@@ -16,7 +17,7 @@ struct ContentView: View {
         textFieldBorder: Color.white.opacity(0.6),
         buttonBackground: .yellow
     )
-    
+
     private let lightTheme = ThemeColor(
         gradientBg: [
             Color(red: 173/255, green: 216/255, blue: 230/255),
@@ -27,7 +28,7 @@ struct ContentView: View {
         textFieldBorder: Color.gray.opacity(0.6),
         buttonBackground: Color(red: 173/255, green: 216/255, blue: 230/255)
     )
-    
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -36,41 +37,36 @@ struct ContentView: View {
                 endPoint: .bottomLeading
             )
             .ignoresSafeArea()
-            .animation(.linear(duration: 0.4), value: isDarkMode)
-            
-            VStack {
+
+            VStack(spacing: 0) {
                 ToggleThemeStack(
                     themeColor: isDarkMode ? darkTheme : lightTheme,
-                    onToggle: {
-                        isDarkMode.toggle()
-                    }
+                    isDarkMode: $isDarkMode
                 )
-                
+
                 ScrollView(.vertical, showsIndicators: true) {
-                    VStack {
+                    VStack(spacing: 20) {
                         ProfileImageView()
-                        
-                        DescriptionView(
-                            themeColor: isDarkMode ? darkTheme : lightTheme)
-                        
+                        DescriptionView(themeColor: isDarkMode ? darkTheme : lightTheme)
                         InputDataView(
                             nameTextField: $nameTextField,
                             surenameTextField: $surenameTextField,
                             themeColor: isDarkMode ? darkTheme : lightTheme
                         )
-                        
-                        Spacer(minLength: 50)
                     }
+                    .padding(.bottom, 30) // щоб було місце під клавіатуру
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
+        }
+        // Ховаємо клавіатуру при тапі поза полями
+        .onTapGesture {
+            hideKeyboard()
         }
     }
 }
 
-#Preview {
-    ContentView()
-}
-
+// MARK: - Theme
 struct ThemeColor {
     var gradientBg: [Color]
     var textColor: Color
@@ -79,28 +75,26 @@ struct ThemeColor {
     var buttonBackground: Color
 }
 
+// MARK: - ToggleThemeStack
 struct ToggleThemeStack: View {
     var themeColor: ThemeColor
-    var onToggle: () -> Void
-    
+    @Binding var isDarkMode: Bool
+
     var body: some View {
         HStack(spacing: 20) {
             Spacer()
-            Text("Тема сторінки")
+            Text(isDarkMode ? "Темна тема" : "Світла тема")
                 .foregroundColor(themeColor.textColor)
                 .fontWeight(.bold)
-            
-            Toggle("", isOn: .constant(true))
+            Toggle("", isOn: $isDarkMode)
                 .labelsHidden()
                 .toggleStyle(SwitchToggleStyle(tint: .yellow))
-                .onTapGesture {
-                    onToggle()
-                }
         }
         .padding()
     }
 }
 
+// MARK: - ProfileImageView
 struct ProfileImageView: View {
     var body: some View {
         HStack {
@@ -116,40 +110,47 @@ struct ProfileImageView: View {
     }
 }
 
+// MARK: - DescriptionView
 struct DescriptionView: View {
     var themeColor: ThemeColor
-    
+
     var body: some View {
-        VStack {
+        VStack(spacing: 10) {
             Text("My name is Jordge")
                 .foregroundColor(themeColor.textColor)
                 .fontWeight(.heavy)
                 .font(.title)
-                .padding()
-            
+                .padding(.top)
+
             Text("George is a friendly and creative individual with a passion for exploring new ideas and meeting diverse people. He is curious by nature and enjoys learning new skills that help him grow both personally and professionally. George values kindness and teamwork, always ready to support others and work towards common goals. In his free time, he likes reading, traveling, and discovering different cultures.")
                 .font(.caption)
-                .foregroundColor(
-                    themeColor.textColor.opacity(0.9))
+                .foregroundColor(themeColor.textColor.opacity(0.9))
                 .padding(.horizontal)
         }
     }
 }
 
+// MARK: - InputDataView
 struct InputDataView: View {
     @Binding var nameTextField: String
     @Binding var surenameTextField: String
-    
+
     var themeColor: ThemeColor
-    
+    @FocusState private var focusedField: Field?
+
+    enum Field {
+        case name
+        case surname
+    }
+
     var body: some View {
-        VStack {
+        VStack(spacing: 15) {
             HStack {
                 Text("Ваше ім'я: ")
                     .font(.headline)
                     .foregroundColor(themeColor.textColor)
                 Spacer()
-                TextField("Введіть ім`я", text: $nameTextField)
+                TextField("Введіть ім'я", text: $nameTextField)
                     .padding(10)
                     .background(themeColor.textFieldbackground)
                     .foregroundColor(themeColor.textColor)
@@ -160,11 +161,12 @@ struct InputDataView: View {
                     )
                     .frame(maxWidth: 210)
                     .shadow(color: .black.opacity(0.3), radius: 10, x: 2, y: 2)
+                    .focused($focusedField, equals: .name)
             }
             .padding(.horizontal)
-            
+
             HStack {
-                Text("Ваше прізвише: ")
+                Text("Ваше прізвище: ")
                     .font(.headline)
                     .foregroundColor(themeColor.textColor)
                 Spacer()
@@ -179,10 +181,15 @@ struct InputDataView: View {
                     )
                     .frame(maxWidth: 210)
                     .shadow(color: .black.opacity(0.3), radius: 10, x: 2, y: 2)
+                    .focused($focusedField, equals: .surname)
             }
             .padding(.horizontal)
-            
-            Button(action: {}) {
+
+            Button(action: {
+                print("Прізвище: ", surenameTextField)
+                print("Ім'я: ", nameTextField)
+                hideKeyboard()
+            }) {
                 Text("Відправити")
                     .padding(10)
                     .foregroundColor(themeColor.textColor)
@@ -194,5 +201,15 @@ struct InputDataView: View {
             .padding(.top)
         }
         .padding(.top)
+    }
+}
+
+// MARK: - Hide Keyboard
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 }
